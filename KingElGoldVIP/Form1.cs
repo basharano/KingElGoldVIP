@@ -19,10 +19,11 @@ namespace KingElGoldVIP
 
 
     {
-        private HashSet<int> seenMessageIds = new HashSet<int>();
-        private static string sessionFilePath = "session.bin"; // Path for storing session
-
+        private static HashSet<int> seenMessageIds = new HashSet<int>();
+        private const string TargetGroup = "KING EL GOLD VIP \U0001f947"; // Your target group name
+        //private const string TargetGroup = "Binance Crypto Box Codes"; // Your target group name
         private static Client client;
+        private static Dictionary<long, TL.Channel> knownChats = new Dictionary<long, TL.Channel>();
 
 
         private TelegramBotClient botClient;
@@ -35,6 +36,79 @@ namespace KingElGoldVIP
 
         }
 
+
+
+        private async Task HandleUpdates(IObject update)
+        {
+            Updates updates = update as Updates;
+            if (updates != null)
+            {
+                foreach (var upd in updates.UpdateList)
+                {
+                    await ProcessUpdate(upd);
+                }
+            }
+            else
+            {
+                UpdateNewMessage singleUpdate = update as UpdateNewMessage;
+                if (singleUpdate != null)
+                {
+                    await ProcessUpdate(singleUpdate);
+                }
+            }
+        }
+
+        private async Task ProcessUpdate(IObject upd)
+        {
+            UpdateNewMessage newMessage = upd as UpdateNewMessage;
+            if (newMessage != null)
+            {
+                TL.Message msg = newMessage.message as TL.Message;
+                if (msg != null && msg.Peer is PeerChannel peerChannel)
+                {
+                    if (!knownChats.ContainsKey(peerChannel.channel_id))
+                    {
+                        var dialogs = await client.Messages_GetAllDialogs();
+                        foreach (var chat in dialogs.chats.Values)
+                        {
+                            TL.Channel ch = chat as TL.Channel;
+                            if (ch != null && ch.title == TargetGroup)
+                            {
+                                knownChats[ch.id] = ch; // Store chat ID
+                                break;
+                            }
+                        }
+                    }
+
+                    // Verify if the message belongs to the target group
+                    TL.Channel channel;
+                    if (knownChats.TryGetValue(peerChannel.channel_id, out channel))
+                    {
+                        if (!seenMessageIds.Contains(msg.ID))
+                        {
+                            seenMessageIds.Add(msg.ID);
+                            Console.WriteLine($"[{channel.title}] {msg.message}");
+
+                            // Append message to RichTextBox
+                            if (checkBox1.Checked)
+                            {
+                                AnilizeSignal($"{msg.message}\n");
+                            }
+
+                            AppendTextToRichTextBox($"[{msg.message}\n");
+                            // Process the message
+                            //ProcessMessage(msg.message);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void ProcessMessage(string message)
+        {
+            // Your custom logic for handling the message
+            Console.WriteLine($"Processing: {message}");
+        }
         private async void InitializeBot()
         {
             string botToken = "7310694647:AAHTpgNwU25TpbcztzdS5ZR9aKfG4Kls59o"; // Replace with your bot's token
@@ -60,7 +134,17 @@ namespace KingElGoldVIP
                 Invoke((Action)(() =>
                 {
                     checkedListBox1.Items.Add($"[{update.Message.Chat.Username ?? "Unknown"}]: {update.Message.Text}");
-                    AnilizeSignal($"{update.Message.Text}");
+                    //AnilizeSignal($"{update.Message.Text}");
+
+
+                    // Append message to RichTextBox
+                    if (checkBox1.Checked)
+                    {
+                        AnilizeSignal($"{update.Message.Text}\n");
+                    }
+
+                    AppendTextToRichTextBox($"[{update.Message.Chat.Username ?? "Unknown"}] {update.Message.Text}\n");
+
                 }));
 
 
@@ -249,12 +333,19 @@ namespace KingElGoldVIP
             {
                 var myself = await client.LoginUserIfNeeded();
                 AppendTextToRichTextBox($"Logged in as {myself.username ?? myself.first_name}.\n");
-                StartListeningForMessages();
+                //StartListeningForMessages();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error: " + ex.Message + ((TL.RpcException)ex).X, "Telegram Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+
+            client.OnUpdates += HandleUpdates;
+
+            // Keep the program running
+            await Task.Delay(-1);
+
+
         }
 
         private static string Config(string what)
