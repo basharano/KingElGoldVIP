@@ -181,8 +181,15 @@ namespace KingElGoldVIP
                 string action = tradeMatch.Groups["action"].Value;
                 string price = tradeMatch.Groups["price"].Value;
                 int sl = slMatch.Success ? Convert.ToInt32(slMatch.Groups["sl"].Value) : 0;
-                int tp = Convert.ToInt32(tpMatches[0].Groups["tp"].Value);
+                int tp = 0;
+                if (tpMatches.Count == 0)
+                {
 
+                }
+                else
+                {
+                    tp = Convert.ToInt32(tpMatches[0].Groups["tp"].Value);
+                }
                 switch (action)
                 {
                     case "SELL":
