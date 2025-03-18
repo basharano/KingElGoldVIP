@@ -418,7 +418,7 @@ if (chat is TL.Channel channel && channel.title == "KING EL GOLD VIP \U0001f947"
 }
 
         }
-        await Task.Delay(120000);
+        await Task.Delay(120000); //5 min
     }
 }
 
