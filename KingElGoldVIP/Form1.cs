@@ -163,59 +163,78 @@ namespace KingElGoldVIP
 
         private void AnilizeSignal(string message)
         {
-        
 
-            // Regular expressions to extract data
-            Regex tradeRegex = new Regex(@"(?<symbol>[A-Z]+)\s+(?<action>BUY|SELL)\s+NOW\s+(?<price>\d+)");
-            Regex slRegex = new Regex(@"Sl\s*:\s*(?<sl>\d+)");
-            Regex tpRegex = new Regex(@"Tp\s*:\s*(?<tp>\d+|open)", RegexOptions.Multiline);
-
-            // Extract trade details
-            Match tradeMatch = tradeRegex.Match(message);
-            Match slMatch = slRegex.Match(message);
-            MatchCollection tpMatches = tpRegex.Matches(message);
-
-            if (tradeMatch.Success && tradeMatch.Groups["symbol"].Value == "XAUUSD")
+            try
             {
-                string symbol = tradeMatch.Groups["symbol"].Value;
-                string action = tradeMatch.Groups["action"].Value;
-                string price = tradeMatch.Groups["price"].Value;
-                int sl = slMatch.Success ? Convert.ToInt32(slMatch.Groups["sl"].Value) : 0;
-                int tp = 0;
-                if (tpMatches.Count == 0)
+                // Regular expressions to extract data
+                Regex tradeRegex = new Regex(@"(?<symbol>[A-Z]+)\s+(?<action>BUY|SELL)\s+NOW\s+(?<price>\d+)");
+                Regex slRegex = new Regex(@"Sl\s*:\s*(?<sl>\d+)");
+                Regex tpRegex = new Regex(@"Tp\s*:\s*(?<tp>\d+|open)", RegexOptions.Multiline);
+
+                // Extract trade details
+                Match tradeMatch = tradeRegex.Match(message);
+                Match slMatch = slRegex.Match(message);
+                MatchCollection tpMatches = tpRegex.Matches(message);
+
+                if (tradeMatch.Success && tradeMatch.Groups["symbol"].Value == "XAUUSD")
                 {
+                    string symbol = tradeMatch.Groups["symbol"].Value;
+                    string action = tradeMatch.Groups["action"].Value;
+                    string price = tradeMatch.Groups["price"].Value;
+                    int sl = slMatch.Success ? Convert.ToInt32(slMatch.Groups["sl"].Value) : 0;
+                    int tp = 0;
+                    if (tpMatches.Count == 0)
+                    {
+                        
+                    }
+                    else
+                    {
+                        tp = Convert.ToInt32(tpMatches[0].Groups["tp"].Value);
+                    }
+                    switch (action)
+                    {
+                        case "SELL":
+                            sl += 1;
+                            tp += 1;
+                            creatOrder("XAUUSDm", 0.02, sl, tp, "SELL");
+                            break;
+                        case "BUY":
+                            sl -= 1;
+                            tp -= 1;
+                            creatOrder("XAUUSDm", 0.02, sl, tp, "BUY");
+
+                            break;
+                        default:
+                            break;
+                    }
+
+                    richTextBox2.Text += $"Symbol: {symbol}\n";
+                    richTextBox2.Text += $"Action: {action}\n";
+                    //richTextBox1.Text += $"Entry Price: {price}\n";
+                    richTextBox2.Text += $"Stop Loss: {sl}\n";
+
+                    richTextBox2.Text += "Take Profit:\n";
+
+                    richTextBox2.Text += $"{tp}\n";
 
                 }
                 else
                 {
-                    tp = Convert.ToInt32(tpMatches[0].Groups["tp"].Value);
+                    string pattern = @"حجز ربحك";
+
+                    string pattern2 = @" امن ";
+                    bool containsPhrase = Regex.IsMatch(message, pattern, RegexOptions.IgnoreCase);
+
+                    bool containsPhrase2 = Regex.IsMatch(message, pattern2, RegexOptions.IgnoreCase);
+                    if (containsPhrase || containsPhrase2)
+                    {
+                        closeOrders("XAUUSDm");
+                    }
                 }
-                switch (action)
-                {
-                    case "SELL":
-                        sl += 1;
-                        tp += 1;
-                        creatOrder("XAUUSDm", 0.02, sl, tp, "SELL");
-                        break;
-                    case "BUY":
-                        sl -= 1;
-                        tp -= 1;
-                        creatOrder("XAUUSDm", 0.02, sl, tp, "BUY");
+            }
+            catch(Exception ex)
+            {
 
-                        break;
-                    default:
-                        break;
-                }
-
-                richTextBox2.Text += $"Symbol: {symbol}\n";
-                richTextBox2.Text += $"Action: {action}\n";
-                //richTextBox1.Text += $"Entry Price: {price}\n";
-                richTextBox2.Text += $"Stop Loss: {sl}\n";
-
-                richTextBox2.Text += "Take Profit:\n";
-
-                richTextBox2.Text += $"{tp}\n";
-                
             }
         }
 
@@ -235,9 +254,10 @@ namespace KingElGoldVIP
             //string orderType = "BUY"; // You can use "SELL" for a sell order
 
             // Path to the Python executable
-            string pythonPath = @"C:\Users\basha\AppData\Local\Programs\Python\Python313\python.exe";
+            string pythonPath = @"C:\Users\basharab\AppData\Local\Programs\Python\Python313\python.exe";
+            //basha C:\Users\basharab\AppData\Local\Programs\Python\Python313
             // Path to the Python script
-            string scriptPath = @"C:\Users\basha\AppData\Local\Programs\Python\Python313\place_order_d.py";
+            string scriptPath = @"C:\Users\basharab\AppData\Local\Programs\Python\Python313\place_order_d.py";
 
             // Arguments to pass to the Python script
             string arguments = $"{symbol} {lotSize} {stopLoss} {takeProfit} {magicNumber} {orderType}";
@@ -266,30 +286,85 @@ namespace KingElGoldVIP
             string errors = process.StandardError.ReadToEnd(); // Capture errors
 
             Console.WriteLine("Output: " + output);
+            richTextBox2.Text += "Output: " + output + "\n";
             if (!string.IsNullOrEmpty(errors))
             {
                 Console.WriteLine("Errors: " + errors);
+                richTextBox2.Text += "Errors: " + errors + "\n";
+
             }
 
             process.WaitForExit();
+        }
+
+        private void closeOrders(string symbol)
+        {
+            try
+            {
+                string pythonPath = @"C:\Users\basharab\AppData\Local\Programs\Python\Python313\python.exe";
+                //basha C:\Users\basharab\AppData\Local\Programs\Python\Python313
+                // Path to the Python script
+                string scriptPath = @"C:\Users\basharab\AppData\Local\Programs\Python\Python313\close_positions.py";
+
+                // Arguments to pass to the Python script
+                string arguments = $"{symbol}";
+
+                // Create a new process to call Python
+                ProcessStartInfo start = new ProcessStartInfo
+                {
+                    FileName = pythonPath,
+                    Arguments = $"{scriptPath} {arguments}",
+                    RedirectStandardOutput = true, // To capture output
+                    RedirectStandardError = true,  // Capture error output
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                // Start the process
+                Process process = new Process
+                {
+                    StartInfo = start
+                };
+
+                process.Start();
+
+                // Read the output from the Python script
+                string output = process.StandardOutput.ReadToEnd();
+                string errors = process.StandardError.ReadToEnd(); // Capture errors
+
+                Console.WriteLine("Output: " + output);
+                richTextBox2.Text += "Output: " + output + "\n";
+                if (!string.IsNullOrEmpty(errors))
+                {
+                    Console.WriteLine("Errors: " + errors);
+                    richTextBox2.Text += "Errors: " + errors + "\n";
+
+                }
+
+                process.WaitForExit();
+            }
+            catch(Exception ex)
+            {
+
+            }
         }
 
         private void button1_Click_1(object sender, EventArgs e)
         {
 
             // Example parameters to pass to the Python script
-            string symbol = "BTCUSDm";
+            string symbol = "XAUUSDm";
             double lotSize = 0.01;
-            double stopLoss = 84800;  // Example stop loss (price level)
-            double takeProfit = 82000; // Example take profit (price level)
+            double stopLoss = 3200;  // Example stop loss (price level)
+            double takeProfit = 2900; // Example take profit (price level)
 
             int magicNumber = 234001; // Dynamic magic number
             string orderType = "SELL"; // You can use "SELL" for a sell order
 
             // Path to the Python executable
-            string pythonPath = @"C:\Users\basha\AppData\Local\Programs\Python\Python313\python.exe";
+            string pythonPath = @"C:\Users\basharab\AppData\Local\Programs\Python\Python313\python.exe";
             // Path to the Python script
-            string scriptPath = @"C:\Users\basha\AppData\Local\Programs\Python\Python313\place_order_d.py";
+            string scriptPath = @"C:\Users\basharab\AppData\Local\Programs\Python\Python313\place_order_d.py";
 
             // Arguments to pass to the Python script
             string arguments = $"{symbol} {lotSize} {stopLoss} {takeProfit} {magicNumber} {orderType}";
