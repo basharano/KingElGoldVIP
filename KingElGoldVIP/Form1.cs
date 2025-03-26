@@ -221,12 +221,14 @@ namespace KingElGoldVIP
                 else
                 {
                     string pattern = @"حجز ربحك";
+                    string pattern1 = @"حجز ربح";
 
                     string pattern2 = @" امن ";
                     bool containsPhrase = Regex.IsMatch(message, pattern, RegexOptions.IgnoreCase);
+                    bool containsPhrase1 = Regex.IsMatch(message, pattern1, RegexOptions.IgnoreCase);
 
                     bool containsPhrase2 = Regex.IsMatch(message, pattern2, RegexOptions.IgnoreCase);
-                    if (containsPhrase || containsPhrase2)
+                    if (containsPhrase || containsPhrase1 || containsPhrase2)
                     {
                         closeOrders("XAUUSDm");
                     }
@@ -360,7 +362,6 @@ namespace KingElGoldVIP
 
             int magicNumber = 234001; // Dynamic magic number
             string orderType = "SELL"; // You can use "SELL" for a sell order
-
             // Path to the Python executable
             string pythonPath = @"C:\Users\basharab\AppData\Local\Programs\Python\Python313\python.exe";
             // Path to the Python script
